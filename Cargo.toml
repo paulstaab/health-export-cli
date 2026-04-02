@@ -1,0 +1,12 @@
+[package]
+name = "health-data-parser"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+zip = "2.3"
+quick-xml = "0.37"
+polars = { version = "0.46", features = ["lazy", "fmt", "dtype-date", "dtype-datetime"] }
+chrono = "0.4"
+anyhow = "1"
