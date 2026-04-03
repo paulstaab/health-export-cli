@@ -303,20 +303,31 @@ fn load_running_workouts_in_range(
 fn resolve_date_filter(filters: &FilterArgs) -> Result<(Option<NaiveDate>, Option<NaiveDate>)> {
     if let Some(year) = filters.year {
         if let Some(month) = filters.month {
-            let from = NaiveDate::from_ymd_opt(year, month, 1).expect("valid date");
+            let from = NaiveDate::from_ymd_opt(year, month, 1)
+                .with_context(|| format!("Invalid --year/--month combination: {year}-{month:02}"))?;
             let (next_year, next_month) = if month == 12 {
-                (year + 1, 1)
+                (
+                    year.checked_add(1)
+                        .with_context(|| format!("Year out of range for --month 12: {year}"))?,
+                    1,
+                )
             } else {
                 (year, month + 1)
             };
             let to = NaiveDate::from_ymd_opt(next_year, next_month, 1)
-                .expect("valid date")
+                .with_context(|| {
+                    format!(
+                        "Invalid next month while resolving date range: {next_year}-{next_month:02}"
+                    )
+                })?
                 .pred_opt()
-                .context("valid month end")?;
+                .context("Failed to resolve month end")?;
             Ok((Some(from), Some(to)))
         } else {
-            let from = NaiveDate::from_ymd_opt(year, 1, 1).expect("valid date");
-            let to = NaiveDate::from_ymd_opt(year, 12, 31).expect("valid date");
+            let from = NaiveDate::from_ymd_opt(year, 1, 1)
+                .with_context(|| format!("Invalid --year value: {year}"))?;
+            let to = NaiveDate::from_ymd_opt(year, 12, 31)
+                .with_context(|| format!("Invalid --year value: {year}"))?;
             Ok((Some(from), Some(to)))
         }
     } else {
