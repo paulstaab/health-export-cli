@@ -2,7 +2,6 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use clap::error::ErrorKind;
 use clap::{Args, Parser, Subcommand};
-use polars::prelude::*;
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 use std::ffi::OsString;
@@ -1088,43 +1087,40 @@ fn print_show<W: Write>(
 
 /// Render the workouts as a Markdown table.
 fn print_markdown_table<W: Write>(writer: &mut W, workouts: &[IndexedWorkout<'_>]) -> Result<()> {
-    let indices: Vec<String> = workouts
+    let headers = [
+        "Run ID",
+        "Date",
+        "Start",
+        "End",
+        "Duration (min)",
+        "Distance (km)",
+        "Pace (min/km)",
+    ];
+    let rows = workouts
         .iter()
-        .map(|w| w.global_index.to_string())
-        .collect();
-    let dates: Vec<String> = workouts.iter().map(|w| w.workout.date.clone()).collect();
-    let starts: Vec<String> = workouts
-        .iter()
-        .map(|w| time_part(&w.workout.start_time).to_string())
-        .collect();
-    let ends: Vec<String> = workouts
-        .iter()
-        .map(|w| time_part(&w.workout.end_time).to_string())
-        .collect();
-    let durations: Vec<String> = workouts.iter().map(|w| w.workout.duration()).collect();
-    let distances: Vec<f64> = workouts.iter().map(|w| w.workout.distance_km).collect();
-    let paces: Vec<String> = workouts.iter().map(|w| w.workout.pace()).collect();
+        .map(|workout| {
+            vec![
+                workout.global_index.to_string(),
+                workout.workout.date.clone(),
+                time_part(&workout.workout.start_time).to_string(),
+                time_part(&workout.workout.end_time).to_string(),
+                workout.workout.duration(),
+                format!("{:.2}", workout.workout.distance_km),
+                workout.workout.pace(),
+            ]
+        })
+        .collect::<Vec<_>>();
 
-    let df = DataFrame::new(vec![
-        Column::new("Run ID".into(), indices),
-        Column::new("Date".into(), dates),
-        Column::new("Start".into(), starts),
-        Column::new("End".into(), ends),
-        Column::new("Duration (min)".into(), durations),
-        Column::new("Distance (km)".into(), distances),
-        Column::new("Pace (min/km)".into(), paces),
-    ])?;
-
-    let headers: Vec<&str> = df.get_column_names().iter().map(|s| s.as_str()).collect();
     let col_widths: Vec<usize> = headers
         .iter()
         .enumerate()
-        .map(|(i, h)| {
-            let max_data = (0..df.height())
-                .map(|r| cell_str(&df, r, i).len())
+        .map(|(column_index, header)| {
+            let max_data = rows
+                .iter()
+                .map(|row| row[column_index].len())
                 .max()
                 .unwrap_or(0);
-            max_data.max(h.len())
+            max_data.max(header.len())
         })
         .collect();
 
@@ -1143,15 +1139,11 @@ fn print_markdown_table<W: Write>(writer: &mut W, workouts: &[IndexedWorkout<'_>
         .join("|");
     writeln!(writer, "|{sep_row}|")?;
 
-    for row in 0..df.height() {
-        let data_row = headers
+    for row in rows {
+        let data_row = row
             .iter()
-            .enumerate()
             .zip(&col_widths)
-            .map(|((i, _), w)| {
-                let val = cell_str(&df, row, i);
-                format!(" {val:<w$} ")
-            })
+            .map(|(value, width)| format!(" {value:<width$} "))
             .collect::<Vec<_>>()
             .join("|");
         writeln!(writer, "|{data_row}|")?;
@@ -1222,36 +1214,4 @@ fn print_records_table<W: Write>(writer: &mut W, rows: &[RecordRow]) -> Result<(
     }
 
     Ok(())
-}
-
-fn cell_str(df: &DataFrame, row: usize, col: usize) -> String {
-    let Some(column) = df.get_columns().get(col) else {
-        return "-".to_string();
-    };
-    let Some(series) = column.as_series() else {
-        return "-".to_string();
-    };
-    match series.dtype() {
-        DataType::Float64 => {
-            if let Ok(ca) = series.f64() {
-                ca.get(row)
-                    .map(|v| format!("{v:.2}"))
-                    .unwrap_or_else(|| "-".to_string())
-            } else {
-                "-".to_string()
-            }
-        }
-        _ => {
-            if let Ok(ca) = series.str() {
-                ca.get(row)
-                    .map(|v| v.to_string())
-                    .unwrap_or_else(|| "-".to_string())
-            } else {
-                series
-                    .get(row)
-                    .map(|v| v.to_string())
-                    .unwrap_or_else(|_| "-".to_string())
-            }
-        }
-    }
 }
