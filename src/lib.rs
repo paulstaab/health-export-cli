@@ -303,8 +303,9 @@ fn load_running_workouts_in_range(
 fn resolve_date_filter(filters: &FilterArgs) -> Result<(Option<NaiveDate>, Option<NaiveDate>)> {
     if let Some(year) = filters.year {
         if let Some(month) = filters.month {
-            let from = NaiveDate::from_ymd_opt(year, month, 1)
-                .with_context(|| format!("Invalid --year/--month combination: {year}-{month:02}"))?;
+            let from = NaiveDate::from_ymd_opt(year, month, 1).with_context(|| {
+                format!("Invalid --year/--month combination: {year}-{month:02}")
+            })?;
             let (next_year, next_month) = if month == 12 {
                 (
                     year.checked_add(1)
