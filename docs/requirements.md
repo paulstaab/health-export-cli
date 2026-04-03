@@ -20,6 +20,7 @@ This document defines the product requirements independent of implementation det
 - `CLI-001`: The tool shall accept a required `--file` path pointing to an Apple Health export ZIP file, specified on the `running` subcommand.
 - `CLI-002`: The tool shall provide a `running list` subcommand that prints all running workouts as a table.
 - `CLI-003`: The tool shall provide a `running show <TARGET>` subcommand that prints details for a single workout. `<TARGET>` is either a 1-based index or the literal `latest` (case-insensitive) to select the most recent workout.
+- `CLI-004`: Matching running workouts shall be ordered chronologically by `startDate` before assigning 1-based indices; `latest` shall select the final workout in that ordered list.
 - `CLI-005`: The `running` subcommand shall accept an optional `--year` flag to filter workouts to a single calendar year.
 - `CLI-006`: The `running` subcommand shall accept optional `--from` and `--to` flags (both required together) to filter workouts to an inclusive date range.
 - `CLI-007`: `--year` and `--from`/`--to` shall be mutually exclusive.

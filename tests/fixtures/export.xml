@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HealthData locale="en_US">
+  <Workout workoutActivityType="HKWorkoutActivityTypeRunning"
+           totalDistance="10.0" totalDistanceUnit="km"
+           startDate="2025-03-01 09:00:00 +0000"
+           endDate="2025-03-01 09:55:00 +0000">
+    <WorkoutRoute>
+      <FileReference path="workout-routes/route_2025-03-01.gpx"/>
+    </WorkoutRoute>
+  </Workout>
+
+  <Workout workoutActivityType="HKWorkoutActivityTypeRunning"
+           totalDistance="2.0" totalDistanceUnit="km"
+           sourceName="Synthetic &amp; Run Club"
+           device="&lt;Watch6,4&gt;"
+           startDate="2023-12-28 06:30:00 +0000"
+           endDate="2023-12-28 06:42:30 +0000">
+    <WorkoutStatistics type="HKQuantityTypeIdentifierDistanceWalkingRunning" sum="2.5" unit="km"/>
+    <WorkoutStatistics type="HKQuantityTypeIdentifierActiveEnergyBurned" sum="900" unit="kJ"/>
+    <MetadataEntry key="HKIndoorWorkout" value="0"/>
+    <MetadataEntry key="HKWasUserEntered" value="0"/>
+    <WorkoutRoute>
+      <FileReference path="workout-routes/route_2023-12-28.gpx"/>
+    </WorkoutRoute>
+  </Workout>
+
+  <Workout workoutActivityType="HKWorkoutActivityTypeRunning"
+           startDate="2025-02-01 08:10:00 +0000"
+           endDate="2025-02-01 08:35:00 +0000">
+    <WorkoutStatistics type="HKQuantityTypeIdentifierDistanceWalkingRunning" sum="5.0" unit="km"/>
+    <WorkoutStatistics type="HKQuantityTypeIdentifierActiveEnergyBurned" sum="100" unit="kcal"/>
+    <MetadataEntry key="HKIndoorWorkout" value="1"/>
+    <MetadataEntry key="HKWasUserEntered" value="1"/>
+    <WorkoutRoute>
+      <FileReference path="workout-routes/route_2025-02-01.gpx"/>
+    </WorkoutRoute>
+  </Workout>
+
+  <Workout workoutActivityType="HKWorkoutActivityTypeCycling"
+           totalDistance="20.0" totalDistanceUnit="km"
+           startDate="2024-04-01 10:00:00 +0000"
+           endDate="2024-04-01 11:00:00 +0000"/>
+
+  <Workout workoutActivityType="HKWorkoutActivityTypeRunning"
+           totalDistance="3.10686" totalDistanceUnit="mi"
+           startDate="2024-01-05 07:00:00 +0000"
+           endDate="2024-01-05 07:30:00 +0000"/>
+
+  <Workout workoutActivityType="HKWorkoutActivityTypeRunning"
+           totalDistance="6.0" totalDistanceUnit="km"
+           startDate="2024-06-10 18:15:00 +0000"
+           endDate="2024-06-10 18:45:00 +0000">
+    <WorkoutRoute>
+      <FileReference path="workout-routes/route_2024-06-10.gpx"/>
+    </WorkoutRoute>
+  </Workout>
+
+  <Record type="HKQuantityTypeIdentifierHeartRate"
+          startDate="2023-12-28 06:30:00 +0000"
+          endDate="2023-12-28 06:32:00 +0000"
+          value="150"/>
+  <Record type="HKQuantityTypeIdentifierHeartRate"
+          startDate="2023-12-28 06:32:00 +0000"
+          endDate="2023-12-28 06:35:00 +0000"
+          value="152"/>
+  <Record type="HKQuantityTypeIdentifierHeartRate"
+          startDate="2023-12-28 06:35:00 +0000"
+          endDate="2023-12-28 06:37:00 +0000"
+          value="160"/>
+  <Record type="HKQuantityTypeIdentifierHeartRate"
+          startDate="2023-12-28 06:37:00 +0000"
+          endDate="2023-12-28 06:40:00 +0000"
+          value="162"/>
+  <Record type="HKQuantityTypeIdentifierHeartRate"
+          startDate="2023-12-28 06:40:00 +0000"
+          endDate="2023-12-28 06:42:30 +0000"
+          value="170"/>
+</HealthData>

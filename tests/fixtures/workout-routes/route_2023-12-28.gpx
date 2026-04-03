@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="health-data-parser-tests" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>2023-12-28 synthetic route</name>
+    <trkseg>
+      <trkpt lat="52.000000" lon="13.000000"><time>2023-12-28T06:30:00Z</time></trkpt>
+      <trkpt lat="52.009000" lon="13.000000"><time>2023-12-28T06:35:00Z</time></trkpt>
+      <trkpt lat="52.018000" lon="13.000000"><time>2023-12-28T06:40:00Z</time></trkpt>
+      <trkpt lat="52.022500" lon="13.000000"><time>2023-12-28T06:42:30Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
