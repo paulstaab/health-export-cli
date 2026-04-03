@@ -15,7 +15,7 @@ use std::path::PathBuf;
 #[command(author, version, about, long_about = None)]
 struct Cli {
     /// Path to the Apple Health export ZIP file.
-    #[arg(short, long, default_value = "./export.zip")]
+    #[arg(short, long, global = true, default_value = "./export.zip")]
     file: PathBuf,
 
     #[command(subcommand)]
