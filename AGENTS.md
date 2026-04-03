@@ -8,9 +8,8 @@ Rust CLI (`health-data-parser`) that parses Apple Health export ZIP files and ex
 
 ```
 health-data-parser running --file <PATH> [--year Y | --from D --to D] <SUBCOMMAND>
-  list      Print a markdown table of all running workouts (with 1-based # index)
-  show N    Show detail view for workout at 1-based index N
-  latest    Show detail view for the most recent workout
+  list            Print a markdown table of all running workouts (with 1-based # index)
+  show <N|latest> Show detail view for workout at 1-based index N, or the most recent workout with `latest`
 ```
 
 `--file`, `--year`, `--from`, `--to` belong to the `running` subcommand, not the root.
@@ -58,9 +57,9 @@ Workouts have **no unique ID** in the export format. Identification is by 1-base
 ## Testing
 
 ```bash
-cargo test                                               # 8 unit tests, must all pass
+cargo test                                               # 11 unit tests, must all pass
 cargo run -- running --file example/export.zip list
-cargo run -- running --file example/export.zip latest
+cargo run -- running --file example/export.zip show latest
 cargo run -- running --file example/export.zip show 1
 cargo run -- running --file example/export.zip show 999   # should error
 cargo run -- running --file example/export.zip --year 2024 list

@@ -50,7 +50,7 @@ This document defines the product requirements independent of implementation det
 
 ### Output
 
-- `OUT-001`: `running list` shall render a Markdown table with columns: `#`, `Date`, `Start`, `End`, `Duration (min)`, `Distance (km)`, `Pace (min/km)`.
+- `OUT-001`: `running list` shall render a Markdown table with columns: `#`, `Date`, `Start`, `End`, `Duration (M:SS)`, `Distance (km)`, `Pace (min/km)`.
 - `OUT-002`: `running show` shall render a key-value detail block including date, start, end, duration, distance, and pace; and optionally energy, source, device, environment, and manual-entry note when those fields are present in the data.
 - `OUT-003`: When GPS data is available, `running show` shall render a per-km splits table below the detail block. Complete km splits are labelled by their km number; the final partial km is labelled with a `~` suffix and its pace is extrapolated to per-km so it is directly comparable to complete splits.
 - `OUT-004`: The splits table shall include an average heart rate column only when at least one HR record overlapping the workout is found.

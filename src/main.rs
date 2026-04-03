@@ -391,7 +391,7 @@ fn read_workout_children<R: Read>(xml: &mut Reader<BufReader<R>>) -> Result<Work
                     Some("HKQuantityTypeIdentifierActiveEnergyBurned") => {
                         data.energy_kj = match (sum, unit.as_deref()) {
                             (Some(e), Some("kJ")) => Some(e),
-                            (Some(e), Some("kcal")) => Some(e * 4.184),
+                            (Some(e), Some("kcal")) => Some(e * 4.184), // 1 kcal = 4.184 kJ
                             (Some(e), _) => Some(e),
                             (None, _) => None,
                         };
@@ -483,8 +483,8 @@ fn parse_workout_attrs(
         let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
         let value = attr
             .unescape_value()
-            .map(|v| v.into_owned())
-            .unwrap_or_default();
+            .with_context(|| format!("Invalid XML attribute value for `{key}` in Workout element"))?
+            .into_owned();
 
         match key {
             "workoutActivityType" => activity_type = Some(value),
@@ -677,6 +677,27 @@ fn collect_heart_rate<R: Read>(
     Ok(records)
 }
 
+/// Return the mean BPM of HR records whose window overlaps [window_start, window_end).
+/// Returns `None` when no records overlap or `hr_records` is empty.
+fn avg_hr_for_window(
+    hr_records: &[HrRecord],
+    window_start: DateTime<FixedOffset>,
+    window_end: DateTime<FixedOffset>,
+) -> Option<f64> {
+    if hr_records.is_empty() {
+        return None;
+    }
+    let (sum, count) = hr_records
+        .iter()
+        .filter(|hr| hr.start < window_end && hr.end > window_start)
+        .fold((0.0_f64, 0usize), |(s, n), hr| (s + hr.bpm, n + 1));
+    if count == 0 {
+        None
+    } else {
+        Some(sum / count as f64)
+    }
+}
+
 /// Compute per-kilometre splits from GPS trackpoints, optionally enriched with HR data.
 fn compute_splits(points: &[GpxPoint], hr_records: &[HrRecord]) -> Vec<KmSplit> {
     if points.len() < 2 {
@@ -689,31 +710,34 @@ fn compute_splits(points: &[GpxPoint], hr_records: &[HrRecord]) -> Vec<KmSplit> 
     let mut km_number = 1_usize;
 
     for i in 1..points.len() {
-        accumulated_km += haversine_km(
+        let prev_accumulated = accumulated_km;
+        let segment_km = haversine_km(
             points[i - 1].lat,
             points[i - 1].lon,
             points[i].lat,
             points[i].lon,
         );
+        accumulated_km += segment_km;
+
+        let segment_ms = (points[i].time - points[i - 1].time).num_milliseconds();
 
         while accumulated_km >= km_number as f64 {
-            let split_end_time = points[i].time;
+            // Interpolate the split boundary timestamp within this GPS segment.
+            let split_end_time = if segment_km > 0.0 {
+                let fraction = (km_number as f64 - prev_accumulated) / segment_km;
+                // The fraction should be in [0.0, 1.0] by construction (we only reach this
+                // branch when accumulated_km >= km_number and segment_km > 0.0), but clamp
+                // defensively against floating-point rounding edge cases.
+                points[i - 1].time
+                    + chrono::Duration::milliseconds(
+                        (segment_ms as f64 * fraction.clamp(0.0, 1.0)) as i64,
+                    )
+            } else {
+                points[i].time
+            };
             let duration_secs = (split_end_time - split_start_time).num_seconds().max(0);
 
-            let avg_hr = if hr_records.is_empty() {
-                None
-            } else {
-                let hrs: Vec<f64> = hr_records
-                    .iter()
-                    .filter(|hr| hr.start < split_end_time && hr.end > split_start_time)
-                    .map(|hr| hr.bpm)
-                    .collect();
-                if hrs.is_empty() {
-                    None
-                } else {
-                    Some(hrs.iter().sum::<f64>() / hrs.len() as f64)
-                }
-            };
+            let avg_hr = avg_hr_for_window(hr_records, split_start_time, split_end_time);
 
             splits.push(KmSplit {
                 km: km_number,
@@ -731,20 +755,7 @@ fn compute_splits(points: &[GpxPoint], hr_records: &[HrRecord]) -> Vec<KmSplit> 
     if remaining_km > 0.01 {
         let last = points.last().unwrap();
         let duration_secs = (last.time - split_start_time).num_seconds().max(0);
-        let avg_hr = if hr_records.is_empty() {
-            None
-        } else {
-            let hrs: Vec<f64> = hr_records
-                .iter()
-                .filter(|hr| hr.start < last.time && hr.end > split_start_time)
-                .map(|hr| hr.bpm)
-                .collect();
-            if hrs.is_empty() {
-                None
-            } else {
-                Some(hrs.iter().sum::<f64>() / hrs.len() as f64)
-            }
-        };
+        let avg_hr = avg_hr_for_window(hr_records, split_start_time, last.time);
         splits.push(KmSplit {
             km: km_number,
             duration_secs,
@@ -761,9 +772,9 @@ fn print_show(index: usize, workout: &RunningWorkout, splits: &[KmSplit], has_hr
     println!("  Date:        {}", workout.date);
     println!("  Start:       {}", time_part(&workout.start_time));
     println!("  End:         {}", time_part(&workout.end_time));
-    println!("  Duration:    {} min", workout.duration());
+    println!("  Duration:    {}", workout.duration());
     println!("  Distance:    {:.2} km", workout.distance_km);
-    println!("  Pace:        {} min/km", workout.pace());
+    println!("  Pace:        {} (M:SS/km)", workout.pace());
     if let Some(kj) = workout.energy_kj {
         println!("  Energy:      {kj:.0} kJ");
     }
@@ -783,9 +794,7 @@ fn print_show(index: usize, workout: &RunningWorkout, splits: &[KmSplit], has_hr
     }
 
     if splits.is_empty() {
-        if workout.gpx_path.is_none() {
-            println!("\nNo GPS data available for splits.");
-        }
+        println!("\nNo GPS data available for splits.");
         return;
     }
 
@@ -842,7 +851,7 @@ fn print_markdown_table(workouts: &[RunningWorkout]) -> Result<()> {
         Column::new("Date".into(), dates),
         Column::new("Start".into(), starts),
         Column::new("End".into(), ends),
-        Column::new("Duration (min)".into(), durations),
+        Column::new("Duration (M:SS)".into(), durations),
         Column::new("Distance (km)".into(), distances),
         Column::new("Pace (min/km)".into(), paces),
     ])?;
@@ -1047,5 +1056,78 @@ mod tests {
 </HealthData>"#;
         let workouts = extract_running_workouts(xml.as_bytes(), None, None).unwrap();
         assert!(workouts.is_empty());
+    }
+
+    #[test]
+    fn test_energy_kj_from_workout_statistics_child() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+  <Workout workoutActivityType="HKWorkoutActivityTypeRunning"
+           startDate="2024-01-01 08:00:00 +0000"
+           endDate="2024-01-01 09:00:00 +0000">
+    <WorkoutStatistics type="HKQuantityTypeIdentifierActiveEnergyBurned"
+                       startDate="2024-01-01 08:00:00 +0000"
+                       endDate="2024-01-01 09:00:00 +0000"
+                       sum="500.0" unit="kJ"/>
+  </Workout>
+</HealthData>"#;
+        let workouts = extract_running_workouts(xml.as_bytes(), None, None).unwrap();
+        assert_eq!(workouts.len(), 1);
+        assert!((workouts[0].energy_kj.unwrap() - 500.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_energy_kcal_conversion() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+  <Workout workoutActivityType="HKWorkoutActivityTypeRunning"
+           startDate="2024-01-01 08:00:00 +0000"
+           endDate="2024-01-01 09:00:00 +0000">
+    <WorkoutStatistics type="HKQuantityTypeIdentifierActiveEnergyBurned"
+                       startDate="2024-01-01 08:00:00 +0000"
+                       endDate="2024-01-01 09:00:00 +0000"
+                       sum="100.0" unit="kcal"/>
+  </Workout>
+</HealthData>"#;
+        let workouts = extract_running_workouts(xml.as_bytes(), None, None).unwrap();
+        assert_eq!(workouts.len(), 1);
+        assert!((workouts[0].energy_kj.unwrap() - 100.0 * 4.184).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_metadata_entry_indoor_and_user_entered() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+  <Workout workoutActivityType="HKWorkoutActivityTypeRunning"
+           startDate="2024-01-01 08:00:00 +0000"
+           endDate="2024-01-01 09:00:00 +0000">
+    <MetadataEntry key="HKIndoorWorkout" value="1"/>
+    <MetadataEntry key="HKWasUserEntered" value="0"/>
+  </Workout>
+</HealthData>"#;
+        let workouts = extract_running_workouts(xml.as_bytes(), None, None).unwrap();
+        assert_eq!(workouts.len(), 1);
+        assert_eq!(workouts[0].indoor, Some(true));
+        assert_eq!(workouts[0].user_entered, Some(false));
+    }
+
+    #[test]
+    fn test_gpx_path_from_workout_route() {
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+  <Workout workoutActivityType="HKWorkoutActivityTypeRunning"
+           startDate="2024-01-01 08:00:00 +0000"
+           endDate="2024-01-01 09:00:00 +0000">
+    <WorkoutRoute startDate="2024-01-01 08:00:00 +0000" endDate="2024-01-01 09:00:00 +0000">
+      <FileReference path="workout-routes/route_2024-01-01_8.00am.gpx"/>
+    </WorkoutRoute>
+  </Workout>
+</HealthData>"#;
+        let workouts = extract_running_workouts(xml.as_bytes(), None, None).unwrap();
+        assert_eq!(workouts.len(), 1);
+        assert_eq!(
+            workouts[0].gpx_path.as_deref(),
+            Some("workout-routes/route_2024-01-01_8.00am.gpx")
+        );
     }
 }
