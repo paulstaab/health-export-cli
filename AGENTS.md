@@ -78,7 +78,7 @@ Use `./scripts/benchmark-release.sh` to benchmark the production binary against 
 The script:
 
 - Builds `target/release/health-data-parser` with `cargo build --release` if the release binary does not exist yet.
-- Runs `running list` once for the full export and once per year for 2016 through 2025.
+- Runs `running list` once for the full export and once per year for 2016 through 2025; the per-year outputs are also used to identify the first workout in each year for the `running show` benchmarks.
 - Runs `running show <RUN_ID>` for the first chronologically listed workout in each year from 2016 through 2025.
 - Runs `running records` once for the full export and once per year for 2016 through 2025.
 - Measures and reports the runtime for every individual command plus a suite total.

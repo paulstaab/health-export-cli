@@ -24,18 +24,38 @@ EOF
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --binary)
+      if (($# < 2)); then
+        printf 'Missing value for %s\n\n' "$1" >&2
+        usage >&2
+        exit 2
+      fi
       binary_path="$2"
       shift 2
       ;;
     --export)
+      if (($# < 2)); then
+        printf 'Missing value for %s\n\n' "$1" >&2
+        usage >&2
+        exit 2
+      fi
       export_zip="$2"
       shift 2
       ;;
     --from-year)
+      if (($# < 2)); then
+        printf 'Missing value for %s\n\n' "$1" >&2
+        usage >&2
+        exit 2
+      fi
       start_year="$2"
       shift 2
       ;;
     --to-year)
+      if (($# < 2)); then
+        printf 'Missing value for %s\n\n' "$1" >&2
+        usage >&2
+        exit 2
+      fi
       end_year="$2"
       shift 2
       ;;
@@ -70,7 +90,25 @@ if [[ ! -x "$binary_path" ]]; then
 fi
 
 ns_now() {
-  date +%s%N
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -c 'import time; print(time.time_ns())'
+    return
+  fi
+
+  if command -v gdate >/dev/null 2>&1; then
+    gdate +%s%N
+    return
+  fi
+
+  local now
+  now="$(date +%s%N 2>/dev/null || true)"
+  if [[ "$now" =~ ^[0-9]+$ ]]; then
+    printf '%s\n' "$now"
+    return
+  fi
+
+  printf 'Unable to determine nanosecond timestamp: install python3 or GNU date (gdate), or run on a system with GNU date support.\n' >&2
+  exit 1
 }
 
 format_ns() {
@@ -99,18 +137,20 @@ declare -a result_commands=()
 declare -a result_durations_ns=()
 total_duration_ns=0
 
+# Global registry of temp files; cleaned up by trap on EXIT/INT/TERM.
+declare -a _cleanup_files=()
+_do_cleanup() {
+  if (( ${#_cleanup_files[@]} > 0 )); then
+    rm -f "${_cleanup_files[@]}"
+  fi
+}
+trap _do_cleanup EXIT INT TERM
+
+# Stdout captured by the most recent run_benchmark call.
+BENCHMARK_STDOUT=""
+
 for (( year = start_year; year <= end_year; year++ )); do
   years+=("$year")
-
-  list_output="$("$binary_path" --file "$export_zip" running list --year "$year")"
-  selected_id="$(printf '%s\n' "$list_output" | extract_first_run_id)"
-
-  if [[ -z "$selected_id" ]]; then
-    printf 'No running workouts found for %s; cannot select a workout for running show.\n' "$year" >&2
-    exit 1
-  fi
-
-  selected_ids+=("$selected_id")
 done
 
 run_benchmark() {
@@ -127,6 +167,7 @@ run_benchmark() {
 
   stdout_file="$(mktemp)"
   stderr_file="$(mktemp)"
+  _cleanup_files+=("$stdout_file" "$stderr_file")
   command_repr="$(command_string "$@")"
 
   printf 'Running %-28s %s\n' "$label" "$command_repr"
@@ -153,16 +194,31 @@ run_benchmark() {
     cat "$stdout_file" >&2
     printf '\nstderr:\n' >&2
     cat "$stderr_file" >&2
-    rm -f "$stdout_file" "$stderr_file"
     exit "$exit_code"
   fi
 
+  BENCHMARK_STDOUT="$(cat "$stdout_file")"
   rm -f "$stdout_file" "$stderr_file"
 }
 
 printf 'Benchmark target: %s\n' "$binary_path"
 printf 'Export ZIP: %s\n' "$export_zip"
 printf 'Year range: %s..%s\n' "$start_year" "$end_year"
+printf '\n'
+
+run_benchmark "list all" "$binary_path" --file "$export_zip" running list
+
+for year in "${years[@]}"; do
+  run_benchmark "list $year" "$binary_path" --file "$export_zip" running list --year "$year"
+
+  selected_id="$(printf '%s\n' "$BENCHMARK_STDOUT" | extract_first_run_id)"
+  if [[ -z "$selected_id" ]]; then
+    printf 'No running workouts found for %s; cannot select a workout for running show.\n' "$year" >&2
+    exit 1
+  fi
+  selected_ids+=("$selected_id")
+done
+
 printf '\nSelected workouts for running show (first run in each year):\n'
 
 for index in "${!years[@]}"; do
@@ -170,12 +226,6 @@ for index in "${!years[@]}"; do
 done
 
 printf '\n'
-
-run_benchmark "list all" "$binary_path" --file "$export_zip" running list
-
-for year in "${years[@]}"; do
-  run_benchmark "list $year" "$binary_path" --file "$export_zip" running list --year "$year"
-done
 
 for index in "${!selected_ids[@]}"; do
   run_benchmark \
