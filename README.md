@@ -1,4 +1,4 @@
-# health-data-parser
+# health-export-cli
 
 A Rust CLI tool that extracts running workouts from an Apple Health export ZIP file and renders lists, details, and running records.
 
@@ -13,7 +13,7 @@ A Rust CLI tool that extracts running workouts from an Apple Health export ZIP f
 ## Usage
 
 ```
-health-data-parser [--file <export.zip>] running <list|records|show <RUN_ID|latest>>
+health-export-cli [--file <export.zip>] running <list|records|show <RUN_ID|latest>>
 ```
 
 If `--file` is omitted, the tool defaults to `./export.zip` in the current working directory.
@@ -27,31 +27,31 @@ If `--file` is omitted, the tool defaults to `./export.zip` in the current worki
 List all running workouts from 2024:
 
 ```sh
-health-data-parser --file export.zip running list --year 2024
+health-export-cli --file export.zip running list --year 2024
 ```
 
 Show running records across the full export:
 
 ```sh
-health-data-parser running records
+health-export-cli running records
 ```
 
 Show running records for a filtered date range:
 
 ```sh
-health-data-parser --file export.zip running records --from 2024-01-01 --to 2024-12-31
+health-export-cli --file export.zip running records --from 2024-01-01 --to 2024-12-31
 ```
 
 Show monthly records for February 2025:
 
 ```sh
-health-data-parser --file export.zip running records --year 2025 --month 2
+health-export-cli --file export.zip running records --year 2025 --month 2
 ```
 
 Show the most recent workout in detail:
 
 ```sh
-health-data-parser running show latest
+health-export-cli running show latest
 ```
 
 ### Sample list output
@@ -81,7 +81,7 @@ health-data-parser running show latest
 cargo build --release
 ```
 
-The binary will be at `target/release/health-data-parser`.
+The binary will be at `target/release/health-export-cli`.
 
 ## Testing
 

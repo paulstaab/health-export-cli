@@ -2,12 +2,12 @@
 
 ## Project overview
 
-Rust CLI (`health-data-parser`) that parses Apple Health export ZIP files and extracts running workout data. Most logic lives in `src/lib.rs`; `src/main.rs` is a thin entrypoint.
+ Rust CLI (`health-export-cli`) that parses Apple Health export ZIP files and extracts running workout data. Most logic lives in `src/lib.rs`; `src/main.rs` is a thin entrypoint.
 
 ## CLI structure
 
 ```
-health-data-parser [--file <PATH>] running <SUBCOMMAND>
+health-export-cli [--file <PATH>] running <SUBCOMMAND>
   list [--year Y [--month M] | --from D --to D]
                   Print a markdown table of all running workouts (with 1-based # index)
   records [--year Y [--month M] | --from D --to D]
@@ -77,7 +77,7 @@ Use `./scripts/benchmark-release.sh` to benchmark the production binary against 
 
 The script:
 
-- Builds `target/release/health-data-parser` with `cargo build --release` if the release binary does not exist yet.
+- Builds `target/release/health-export-cli` with `cargo build --release` if the release binary does not exist yet.
 - Runs `running list` once for the full export and once per year for 2016 through 2025; the per-year outputs are also used to identify the first workout in each year for the `running show` benchmarks.
 - Runs `running show <RUN_ID>` for the first chronologically listed workout in each year from 2016 through 2025.
 - Runs `running records` once for the full export and once per year for 2016 through 2025.
@@ -88,7 +88,7 @@ Useful variants:
 ```bash
 ./scripts/benchmark-release.sh
 ./scripts/benchmark-release.sh --from-year 2016 --to-year 2016
-./scripts/benchmark-release.sh --binary target/release/health-data-parser --export example/export.zip
+./scripts/benchmark-release.sh --binary target/release/health-export-cli --export example/export.zip
 ```
 
 ## After every change

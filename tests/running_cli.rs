@@ -1,4 +1,4 @@
-use health_data_parser::run_from_args;
+use health_export_cli::run_from_args;
 use std::fs;
 use std::path::PathBuf;
 
@@ -10,7 +10,7 @@ fn run_app(args: &[&str]) -> (i32, String, String) {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
 
-    let mut all_args = vec!["health-data-parser"];
+    let mut all_args = vec!["health-export-cli"];
     all_args.extend_from_slice(args);
 
     let exit_code = run_from_args(all_args, &mut stdout, &mut stderr).unwrap();

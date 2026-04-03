@@ -2,7 +2,7 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-binary_path="$repo_root/target/release/health-data-parser"
+binary_path="$repo_root/target/release/health-export-cli"
 export_zip="$repo_root/example/export.zip"
 start_year=2016
 end_year=2025

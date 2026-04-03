@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document catalogs the tests that should exist for health-data-parser.
+This document catalogs the tests that should exist for health-export-cli.
 Each test case has a stable ID, a short description, and an expected result so it can be understood without opening source files.
 
 ## Test Conventions
@@ -11,7 +11,7 @@ Each test case has a stable ID, a short description, and an expected result so i
 - Automated tests shall run against the static fixture archive at `tests/fixtures/export.zip` rather than ad hoc inline XML strings or the large example export.
 - The plain-text source files used to build the static fixture shall remain in `tests/fixtures/` alongside the generated ZIP so fixture changes are reviewable.
 - When the fixture contents change, regenerate `tests/fixtures/export.zip` with `./scripts/regenerate-test-export.sh` instead of editing the archive directly.
-- Automated tests should exercise the application through the high-level Rust entry point `health_data_parser::run_from_args(...)` with injected stdout/stderr writers, rather than calling lower-level parsing helpers directly.
+- Automated tests should exercise the application through the high-level Rust entry point `health_export_cli::run_from_args(...)` with injected stdout/stderr writers, rather than calling lower-level parsing helpers directly.
 - Test names for automated cases shall include the corresponding stable test-case ID, for example `tc_cli_001_*`.
 - New automated coverage should prefer user-visible command behavior over internal helper behavior unless a lower-level test is strictly necessary.
 
