@@ -286,7 +286,7 @@ fn load_running_workouts_in_range(
         .find(|&i| {
             archive
                 .by_index(i)
-                .map(|e: ::zip::read::ZipFile<'_>| e.name().ends_with("export.xml"))
+                .map(|e| e.name().ends_with("export.xml"))
                 .unwrap_or(false)
         })
         .context("export.xml not found inside the ZIP archive")?;
@@ -437,7 +437,7 @@ fn compute_workout_splits(
         let gpx_index = (0..archive.len()).find(|&i| {
             archive
                 .by_index(i)
-                .map(|e: ::zip::read::ZipFile<'_>| e.name().ends_with(path_suffix))
+                .map(|e| e.name().ends_with(path_suffix))
                 .unwrap_or(false)
         });
         match gpx_index {
@@ -463,7 +463,7 @@ fn compute_workout_splits(
             .find(|&i| {
                 archive
                     .by_index(i)
-                    .map(|e: ::zip::read::ZipFile<'_>| e.name().ends_with("export.xml"))
+                    .map(|e| e.name().ends_with("export.xml"))
                     .unwrap_or(false)
             })
             .context("export.xml not found")?;
@@ -753,7 +753,7 @@ fn parse_gpx<R: Read>(reader: R) -> Result<Vec<GpxPoint>> {
                 _ => {}
             },
             Ok(Event::Text(ref e)) if reading_time => {
-                if let Ok(text) = e.unescape() {
+                if let Ok(text) = e.decode() {
                     current_time = DateTime::parse_from_rfc3339(text.trim()).ok();
                 }
                 reading_time = false;
