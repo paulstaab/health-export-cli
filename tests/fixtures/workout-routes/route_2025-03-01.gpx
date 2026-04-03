@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="health-data-parser-tests" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>2025-03-01 synthetic route</name>
+    <trkseg>
+      <trkpt lat="52.300000" lon="13.300000"><time>2025-03-01T09:00:00Z</time></trkpt>
+      <trkpt lat="52.309000" lon="13.300000"><time>2025-03-01T09:05:30Z</time></trkpt>
+      <trkpt lat="52.318000" lon="13.300000"><time>2025-03-01T09:11:00Z</time></trkpt>
+      <trkpt lat="52.327000" lon="13.300000"><time>2025-03-01T09:16:30Z</time></trkpt>
+      <trkpt lat="52.336000" lon="13.300000"><time>2025-03-01T09:22:00Z</time></trkpt>
+      <trkpt lat="52.345000" lon="13.300000"><time>2025-03-01T09:27:30Z</time></trkpt>
+      <trkpt lat="52.354000" lon="13.300000"><time>2025-03-01T09:33:00Z</time></trkpt>
+      <trkpt lat="52.363000" lon="13.300000"><time>2025-03-01T09:38:30Z</time></trkpt>
+      <trkpt lat="52.372000" lon="13.300000"><time>2025-03-01T09:44:00Z</time></trkpt>
+      <trkpt lat="52.381000" lon="13.300000"><time>2025-03-01T09:49:30Z</time></trkpt>
+      <trkpt lat="52.390000" lon="13.300000"><time>2025-03-01T09:55:00Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>
