@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, FixedOffset, NaiveDate};
 use clap::error::ErrorKind;
 use clap::{Args, Parser, Subcommand};
+use quick_xml::XmlVersion;
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
 use std::ffi::OsString;
@@ -645,7 +646,7 @@ fn parse_workout_attrs(
         let attr = attr.context("Invalid XML attribute")?;
         let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
         let value = attr
-            .unescape_value()
+            .normalized_value(XmlVersion::Implicit1_0)
             .with_context(|| format!("Invalid XML attribute value for `{key}` in Workout element"))?
             .into_owned();
 
