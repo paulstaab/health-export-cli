@@ -287,7 +287,11 @@ fn load_running_workouts_in_range(
         .find(|&i| {
             archive
                 .by_index(i)
-                .map(|e| e.name().ends_with("export.xml"))
+                .map(|e| {
+                    e.name()
+                        .map(|name| name.ends_with("export.xml"))
+                        .unwrap_or(false)
+                })
                 .unwrap_or(false)
         })
         .context("export.xml not found inside the ZIP archive")?;
@@ -438,7 +442,11 @@ fn compute_workout_splits(
         let gpx_index = (0..archive.len()).find(|&i| {
             archive
                 .by_index(i)
-                .map(|e| e.name().ends_with(path_suffix))
+                .map(|e| {
+                    e.name()
+                        .map(|name| name.ends_with(path_suffix))
+                        .unwrap_or(false)
+                })
                 .unwrap_or(false)
         });
         match gpx_index {
@@ -464,7 +472,11 @@ fn compute_workout_splits(
             .find(|&i| {
                 archive
                     .by_index(i)
-                    .map(|e| e.name().ends_with("export.xml"))
+                    .map(|e| {
+                        e.name()
+                            .map(|name| name.ends_with("export.xml"))
+                            .unwrap_or(false)
+                    })
                     .unwrap_or(false)
             })
             .context("export.xml not found")?;
