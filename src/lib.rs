@@ -287,11 +287,7 @@ fn load_running_workouts_in_range(
         .find(|&i| {
             archive
                 .by_index(i)
-                .map(|e| {
-                    e.name()
-                        .map(|name| name.ends_with("export.xml"))
-                        .unwrap_or(false)
-                })
+                .map(|e| e.name().is_ok_and(|name| name.ends_with("export.xml")))
                 .unwrap_or(false)
         })
         .context("export.xml not found inside the ZIP archive")?;
@@ -442,11 +438,7 @@ fn compute_workout_splits(
         let gpx_index = (0..archive.len()).find(|&i| {
             archive
                 .by_index(i)
-                .map(|e| {
-                    e.name()
-                        .map(|name| name.ends_with(path_suffix))
-                        .unwrap_or(false)
-                })
+                .map(|e| e.name().is_ok_and(|name| name.ends_with(path_suffix)))
                 .unwrap_or(false)
         });
         match gpx_index {
@@ -472,11 +464,7 @@ fn compute_workout_splits(
             .find(|&i| {
                 archive
                     .by_index(i)
-                    .map(|e| {
-                        e.name()
-                            .map(|name| name.ends_with("export.xml"))
-                            .unwrap_or(false)
-                    })
+                    .map(|e| e.name().is_ok_and(|name| name.ends_with("export.xml")))
                     .unwrap_or(false)
             })
             .context("export.xml not found")?;
@@ -506,12 +494,12 @@ fn extract_running_workouts<R: Read>(
 
     loop {
         match xml.read_event_into(&mut buf) {
-            Ok(Event::Empty(ref e)) if e.name().as_ref() == b"Workout" => {
+            Ok(Event::Empty(ref e)) if e.name().as_ref() == "Workout" => {
                 if let Some(w) = parse_workout_attrs(e, WorkoutChildData::default(), from, to)? {
                     workouts.push(w);
                 }
             }
-            Ok(Event::Start(ref e)) if e.name().as_ref() == b"Workout" => {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == "Workout" => {
                 let child_data = read_workout_children(&mut xml)?;
                 if let Some(w) = parse_workout_attrs(e, child_data, from, to)? {
                     workouts.push(w);
@@ -539,16 +527,14 @@ fn read_workout_children<R: Read>(xml: &mut Reader<BufReader<R>>) -> Result<Work
     loop {
         buf.clear();
         match xml.read_event_into(&mut buf) {
-            Ok(Event::Empty(ref e)) if e.name().as_ref() == b"WorkoutStatistics" => {
+            Ok(Event::Empty(ref e)) if e.name().as_ref() == "WorkoutStatistics" => {
                 let mut stat_type: Option<String> = None;
                 let mut sum: Option<f64> = None;
                 let mut unit: Option<String> = None;
                 for attr in e.attributes() {
                     let attr = attr.context("Invalid XML attribute")?;
-                    let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
-                    let value = std::str::from_utf8(attr.value.as_ref())
-                        .unwrap_or("")
-                        .to_owned();
+                    let key = attr.key.as_ref();
+                    let value = attr.value.as_ref().to_owned();
                     match key {
                         "type" => stat_type = Some(value),
                         "sum" => sum = value.parse::<f64>().ok(),
@@ -576,15 +562,13 @@ fn read_workout_children<R: Read>(xml: &mut Reader<BufReader<R>>) -> Result<Work
                     _ => {}
                 }
             }
-            Ok(Event::Empty(ref e)) if e.name().as_ref() == b"MetadataEntry" => {
+            Ok(Event::Empty(ref e)) if e.name().as_ref() == "MetadataEntry" => {
                 let mut key: Option<String> = None;
                 let mut value: Option<String> = None;
                 for attr in e.attributes() {
                     let attr = attr.context("Invalid XML attribute")?;
-                    let k = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
-                    let v = std::str::from_utf8(attr.value.as_ref())
-                        .unwrap_or("")
-                        .to_owned();
+                    let k = attr.key.as_ref();
+                    let v = attr.value.as_ref().to_owned();
                     match k {
                         "key" => key = Some(v),
                         "value" => value = Some(v),
@@ -597,24 +581,20 @@ fn read_workout_children<R: Read>(xml: &mut Reader<BufReader<R>>) -> Result<Work
                     _ => {}
                 }
             }
-            Ok(Event::Start(ref e)) if e.name().as_ref() == b"WorkoutRoute" => {
+            Ok(Event::Start(ref e)) if e.name().as_ref() == "WorkoutRoute" => {
                 let mut route_buf = Vec::new();
                 loop {
                     route_buf.clear();
                     match xml.read_event_into(&mut route_buf) {
-                        Ok(Event::Empty(ref e2)) if e2.name().as_ref() == b"FileReference" => {
+                        Ok(Event::Empty(ref e2)) if e2.name().as_ref() == "FileReference" => {
                             for attr in e2.attributes() {
                                 let attr = attr.context("Invalid XML attribute")?;
-                                if attr.key.as_ref() == b"path" {
-                                    data.gpx_path = Some(
-                                        std::str::from_utf8(attr.value.as_ref())
-                                            .unwrap_or("")
-                                            .to_owned(),
-                                    );
+                                if attr.key.as_ref() == "path" {
+                                    data.gpx_path = Some(attr.value.as_ref().to_owned());
                                 }
                             }
                         }
-                        Ok(Event::End(ref e2)) if e2.name().as_ref() == b"WorkoutRoute" => break,
+                        Ok(Event::End(ref e2)) if e2.name().as_ref() == "WorkoutRoute" => break,
                         Ok(Event::Eof) => break,
                         Err(e) => {
                             return Err(anyhow::anyhow!(
@@ -626,7 +606,7 @@ fn read_workout_children<R: Read>(xml: &mut Reader<BufReader<R>>) -> Result<Work
                     }
                 }
             }
-            Ok(Event::End(ref e)) if e.name().as_ref() == b"Workout" => break,
+            Ok(Event::End(ref e)) if e.name().as_ref() == "Workout" => break,
             Ok(Event::Eof) => break,
             Err(e) => {
                 return Err(anyhow::anyhow!(
@@ -656,7 +636,7 @@ fn parse_workout_attrs(
 
     for attr in e.attributes() {
         let attr = attr.context("Invalid XML attribute")?;
-        let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
+        let key = attr.key.as_ref();
         let value = attr
             .normalized_value(XmlVersion::Implicit1_0)
             .with_context(|| format!("Invalid XML attribute value for `{key}` in Workout element"))?
@@ -745,7 +725,7 @@ fn parse_gpx<R: Read>(reader: R) -> Result<Vec<GpxPoint>> {
         buf.clear();
         match xml.read_event_into(&mut buf) {
             Ok(Event::Start(ref e)) => match e.name().as_ref() {
-                b"trkpt" => {
+                "trkpt" => {
                     in_trkpt = true;
                     reading_time = false;
                     current_lat = None;
@@ -753,8 +733,8 @@ fn parse_gpx<R: Read>(reader: R) -> Result<Vec<GpxPoint>> {
                     current_time = None;
                     for attr in e.attributes() {
                         let attr = attr.context("Invalid GPX attribute")?;
-                        let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
-                        let value = std::str::from_utf8(attr.value.as_ref()).unwrap_or("");
+                        let key = attr.key.as_ref();
+                        let value = attr.value.as_ref();
                         match key {
                             "lat" => current_lat = value.parse().ok(),
                             "lon" => current_lon = value.parse().ok(),
@@ -762,17 +742,16 @@ fn parse_gpx<R: Read>(reader: R) -> Result<Vec<GpxPoint>> {
                         }
                     }
                 }
-                b"time" if in_trkpt => reading_time = true,
+                "time" if in_trkpt => reading_time = true,
                 _ => {}
             },
             Ok(Event::Text(ref e)) if reading_time => {
-                if let Ok(text) = e.decode() {
-                    current_time = DateTime::parse_from_rfc3339(text.trim()).ok();
-                }
+                let text = e.xml_content(XmlVersion::Implicit1_0);
+                current_time = DateTime::parse_from_rfc3339(text.trim()).ok();
                 reading_time = false;
             }
             Ok(Event::End(ref e)) => match e.name().as_ref() {
-                b"trkpt" => {
+                "trkpt" => {
                     if let (Some(lat), Some(lon), Some(time)) =
                         (current_lat, current_lon, current_time)
                     {
@@ -781,7 +760,7 @@ fn parse_gpx<R: Read>(reader: R) -> Result<Vec<GpxPoint>> {
                     in_trkpt = false;
                     reading_time = false;
                 }
-                b"time" => reading_time = false,
+                "time" => reading_time = false,
                 _ => {}
             },
             Ok(Event::Eof) => break,
@@ -809,7 +788,7 @@ fn collect_heart_rate<R: Read>(
     loop {
         buf.clear();
         match xml.read_event_into(&mut buf) {
-            Ok(Event::Empty(ref e)) if e.name().as_ref() == b"Record" => {
+            Ok(Event::Empty(ref e)) if e.name().as_ref() == "Record" => {
                 let mut is_hr = false;
                 let mut bpm: Option<f64> = None;
                 let mut start_str: Option<String> = None;
@@ -817,10 +796,8 @@ fn collect_heart_rate<R: Read>(
 
                 for attr in e.attributes() {
                     let attr = attr.context("Invalid XML attribute")?;
-                    let key = std::str::from_utf8(attr.key.as_ref()).unwrap_or("");
-                    let value = std::str::from_utf8(attr.value.as_ref())
-                        .unwrap_or("")
-                        .to_owned();
+                    let key = attr.key.as_ref();
+                    let value = attr.value.as_ref().to_owned();
                     match key {
                         "type" => {
                             is_hr = value == "HKQuantityTypeIdentifierHeartRate";
